@@ -19,6 +19,53 @@ namespace hndl
 
 		HandlePool(std::vector<T>&& data) : m_data(std::move(data)), m_generations(data.size()) { }
 
+		// Pool Iterator
+		// @brief iterate over all data elements in the pool, skipping over empty slots
+		// WARNING: this is very inefficient and should generally not be used, for quicker iteration consider using handle_array instead.
+		struct Iterator
+		{
+			const HandlePool<T>* pool = nullptr;
+			std::size_t index;
+
+			Iterator(const HandlePool<T>* p, std::size_t i) : pool(p), index(i) {
+				skip_dead();
+			}
+
+			void skip_dead() {
+				while (index < pool->m_data.size() && pool->empty(index))
+				++index;
+			}
+
+			T operator*() const { return pool->m_data[index]; }
+			T* operator->() const { return &pool->m_data[index]; }
+
+			Iterator& operator++() {
+				++index;
+				skip_dead();
+				return *this;
+			}
+
+			Iterator operator++(int) {
+				Iterator tmp(*this);
+				++(*this);
+				return tmp;
+			}
+
+			bool operator==(const Iterator& other) const {
+				return pool == other.pool && index == other.index;
+			}
+
+			bool operator!=(const Iterator& other) const {
+				return !(*this == other);
+			}
+		}; // end Iterator
+
+		inline Iterator begin() const { return Iterator(this, 0); }
+		inline Iterator end() const { return Iterator(this, m_data.size()); }
+
+		inline Iterator cbegin() const { return begin(); }
+		inline Iterator cend() const { return end(); }
+
 		inline bool has(Handle<T> handle) const {
 			// bounds & generation check
 			if (handle.index >= m_data.size() || handle.generation != m_generations[handle.index])
@@ -56,6 +103,7 @@ namespace hndl
 			m_data.reserve(size);
 			m_generations.reserve(size);
 		}
+
 
 		/// @brief Adds a new object to the pool
 		/// @param data the object to add
@@ -103,13 +151,24 @@ namespace hndl
 		inline void remove(Handle<T> handle)
 		{
 			if(!has(handle))
-				throw std::invalid_argument("remove() - invalid ID specified");
+				throw std::invalid_argument("Unable to remove, handle is invalid!");
 
 			m_freelist.push_back(handle.index);
 			m_generations[handle.index]++;
 		}
 
+
 	private:
+
+		inline bool empty(index_t index) const {
+			for (index_t idx : m_freelist) {
+				if (idx == index) {
+					return true;
+				}
+			}
+			return false;
+		}
+
 		std::vector<T> m_data;
 		std::vector<index_t> m_generations;
 		std::vector<index_t> m_freelist;

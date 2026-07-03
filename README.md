@@ -11,7 +11,7 @@ The implementation is primarily based on Sebastian Aaltonen's "Generational Hand
 ## Usage:
 
 ### Handle pool
-A Handle pool is a non-iterable container optimized for handle-based retrieval.
+Handle pool is a simple handle based container optimized for handle-based retrieval.
 
 ```cpp
 #include <handle_pool>
@@ -34,7 +34,7 @@ int* i2 = pool.get(id2); // (6)
 ```
 
 ### Handle array
-A Handle array is optimized for fast iteration, although its `add()` and `remove()` operations are slightly slower compared to `HandlePool`.
+Handle array is optimized for fast iteration, it supports both handle-based retrieval and direct access to the packed data array. Unlike `HandlePool`, it stores data tightly packed while maintaining stable handles. It uses bit more memory, and the `add()`, `get()` and `remove()` operations are slightly slower due to additional indirection compared to `HandlePool`.
 
 **Note:** Do not use this container if you only want to retrieve values by handle (using `get()`), use `HandlePool` instead.
 
